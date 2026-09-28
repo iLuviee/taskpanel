@@ -1,14 +1,14 @@
-// Configuration for Discord OAuth2 Setup
+// Configuration for Discord OAuth2 and Supabase cloud storage.
 const DISCORD_CONFIG = {
-    // Masukkan Client ID dari Discord Developer Portal di sini
-    CLIENT_ID: '1547117034125402122', 
-    
-    // Auto detect Redirect URI berdasarkan domain GitHub Pages atau Localhost kamu
+    CLIENT_ID: '1547117034125402122',
     REDIRECT_URI: window.location.origin + window.location.pathname,
-    
-    // Scope OAuth2 yang dibutuhkan untuk membaca identitas user
     SCOPES: ['identify', 'email'],
-    
-    // Discord OAuth2 Endpoint
     AUTH_ENDPOINT: 'https://discord.com/api/oauth2/authorize'
+};
+
+const SUPABASE_CONFIG = {
+    // Isi dari Supabase Project Settings > API.
+    URL: '',
+    ANON_KEY: '',
+    ENABLED: false
 };
