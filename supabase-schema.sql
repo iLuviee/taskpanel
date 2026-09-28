@@ -9,6 +9,7 @@ create table if not exists public.tasks (
     priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
     deadline timestamptz not null,
     notes text not null default '',
+    reference_url text not null default '',
     attachment jsonb not null default '{}'::jsonb,
     completed boolean not null default false,
     created_at timestamptz not null default now()
@@ -41,6 +42,7 @@ create index if not exists tasks_user_id_idx on public.tasks(user_id);
 create index if not exists schedules_user_id_idx on public.schedules(user_id);
 
 alter table public.tasks add column if not exists attachment jsonb not null default '{}'::jsonb;
+alter table public.tasks add column if not exists reference_url text not null default '';
 
 insert into storage.buckets (id, name, public)
 values ('task-files', 'task-files', true)
