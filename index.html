@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - Discord Theme</title>
+    <title>Student Dashboard - Discord Edition</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Ginto+Nord:wght@700&family=gg+sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS File -->
@@ -15,7 +15,46 @@
 </head>
 <body>
 
-    <div class="app-container">
+    <!-- LOGIN SCREEN PANEL (Tampil jika belum login) -->
+    <div id="loginOverlay" class="login-overlay active">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="discord-badge">
+                    <i class="fa-brands fa-discord"></i>
+                </div>
+                <h2>Selamat Datang Kembali!</h2>
+                <p>Silakan login dengan akun Discord untuk mengakses dashboard, jadwal perkuliahan, dan tugas harian kamu.</p>
+            </div>
+
+            <div class="login-actions">
+                <button id="loginDiscordBtn" class="btn btn-discord-large">
+                    <i class="fa-brands fa-discord"></i> Otorisasi dengan Discord
+                </button>
+                
+                <div class="divider">
+                    <span>atau coba simulasi</span>
+                </div>
+
+                <div class="demo-login-box">
+                    <p class="demo-title"><i class="fa-solid fa-vial"></i> Mode Demo Multi-Akun (Offline Testing):</p>
+                    <div class="demo-buttons">
+                        <button class="btn btn-demo" onclick="loginDemo('user_a')">
+                            <img src="https://cdn.discordapp.com/embed/avatars/1.png" alt="User A">
+                            <span>Akun Test A</span>
+                        </button>
+                        <button class="btn btn-demo" onclick="loginDemo('user_b')">
+                            <img src="https://cdn.discordapp.com/embed/avatars/2.png" alt="User B">
+                            <span>Akun Test B</span>
+                        </button>
+                    </div>
+                    <p class="demo-hint">*Tiap akun memiliki penyimpanan jadwal & tugas yang terisolasi sendiri.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (Tampil setelah otorisasi) -->
+    <div class="app-container" id="appContainer">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand">
@@ -38,21 +77,22 @@
                 </button>
                 <button class="nav-btn" data-tab="settings">
                     <i class="fa-solid fa-gear"></i>
-                    <span>Pengaturan</span>
+                    <span>Pengaturan Akun</span>
                 </button>
             </nav>
 
-            <div class="user-card" id="sidebarUserCard">
+            <!-- User Info Card -->
+            <div class="user-card">
                 <div class="user-avatar-container">
                     <img id="userAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User Avatar" class="user-avatar">
                     <span class="status-indicator online"></span>
                 </div>
                 <div class="user-details">
-                    <span id="userName" class="user-name">Guest User</span>
-                    <span id="userTag" class="user-tag">Belum Login</span>
+                    <span id="userName" class="user-name">Pengguna</span>
+                    <span id="userTag" class="user-tag">#0000</span>
                 </div>
-                <button id="authBtn" class="auth-btn" title="Login / Logout">
-                    <i class="fa-solid fa-right-to-bracket"></i>
+                <button id="logoutBtn" class="auth-btn" title="Keluar / Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </aside>
@@ -68,9 +108,10 @@
 
                 <div class="header-actions">
                     <div class="time-badge" id="liveClock">00:00:00 WIB</div>
-                    <button class="btn btn-discord" id="topAuthBtn">
-                        <i class="fa-brands fa-discord"></i> Login Discord
-                    </button>
+                    <div class="account-pill" id="accountPill">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span id="pillAccountName">Memuat...</span>
+                    </div>
                 </div>
             </header>
 
@@ -94,7 +135,7 @@
                     <div class="stat-card green">
                         <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
                         <div class="stat-info">
-                            <span class="stat-label">Selesai Minggu Ini</span>
+                            <span class="stat-label">Selesai Dituntaskan</span>
                             <h3 id="statCompletedTasks">0 Tugas</h3>
                         </div>
                     </div>
@@ -109,12 +150,12 @@
                         <div class="card-body" id="nextClassContainer">
                             <div class="empty-state">
                                 <i class="fa-solid fa-mug-hot"></i>
-                                <p>Tidak ada perkuliahan lagi untuk hari ini!</p>
+                                <p>Tidak ada perkuliahan untuk hari ini!</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right: Quick Tasks -->
+                    <!-- Right: High Priority Tasks -->
                     <div class="content-card">
                         <div class="card-header">
                             <h2><i class="fa-solid fa-fire"></i> Tugas Prioritas Tinggi</h2>
@@ -122,7 +163,7 @@
                         </div>
                         <div class="card-body">
                             <ul class="task-list-simple" id="priorityTaskList">
-                                <!-- Dynamic dynamic JS insert -->
+                                <!-- Dynamic JS render -->
                             </ul>
                         </div>
                     </div>
@@ -146,7 +187,7 @@
                 </div>
 
                 <div class="schedule-grid" id="scheduleList">
-                    <!-- Cards dynamic -->
+                    <!-- Schedule Cards Rendered via JS -->
                 </div>
             </section>
 
@@ -164,29 +205,26 @@
                 </div>
 
                 <div class="tasks-container" id="taskList">
-                    <!-- Task items dynamic -->
+                    <!-- Task Items Rendered via JS -->
                 </div>
             </section>
 
-            <!-- TAB 4: PENGATURAN & DISCORD -->
+            <!-- TAB 4: PENGATURAN -->
             <section id="tab-settings" class="tab-content">
                 <div class="content-card">
                     <div class="card-header">
-                        <h2><i class="fa-brands fa-discord"></i> Status Konfigurasi OAuth2 Discord</h2>
+                        <h2><i class="fa-solid fa-database"></i> Status Memori Akun Discord</h2>
                     </div>
                     <div class="card-body">
                         <div class="info-box">
-                            <p><strong>Status Login:</strong> <span id="settingsLoginStatus">Belum Terkoneksi</span></p>
-                            <p><strong>Redirect URI Aktif:</strong> <code id="settingsRedirectUri">...</code></p>
+                            <p><strong>Akun Aktif:</strong> <span id="settingAccountName">-</span></p>
+                            <p><strong>User ID Discord:</strong> <code id="settingAccountId">-</code></p>
+                            <p><strong>Storage Key Terisolasi:</strong> <code id="settingStorageKey">-</code></p>
                         </div>
-                        <div class="guide-steps">
-                            <h3>Langkah Deployment GitHub Pages:</h3>
-                            <ol>
-                                <li>Buka <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.</li>
-                                <li>Pilih / buat aplikasi baru, buka menu <strong>OAuth2</strong>.</li>
-                                <li>Tambahkan Redirect URI yang tertera di atas pada pengaturan Discord App kamu.</li>
-                                <li>Salin <strong>Client ID</strong> dan tempelkan ke file <code>config.js</code> di repositori GitHub kamu.</li>
-                            </ol>
+                        <div class="danger-zone" style="margin-top: 20px;">
+                            <button class="btn btn-danger" onclick="clearCurrentUserData()">
+                                <i class="fa-solid fa-trash-can"></i> Hapus Semua Data Akun Ini
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -194,7 +232,7 @@
         </main>
     </div>
 
-    <!-- MODAL: TAMBAH JADWAL KULIAH -->
+    <!-- MODAL: TAMBAH JADWAL -->
     <div class="modal-overlay" id="scheduleModal">
         <div class="modal-card">
             <div class="modal-header">
@@ -287,7 +325,7 @@
         </div>
     </div>
 
-    <!-- JS Files -->
+    <!-- JavaScript Files -->
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>

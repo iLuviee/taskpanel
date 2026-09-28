@@ -1,30 +1,170 @@
-// LocalStorage Data Keys
-const STORAGE_KEYS = {
-    SCHEDULE: 'student_dashboard_schedules',
-    TASKS: 'student_dashboard_tasks',
-    DISCORD_USER: 'student_dashboard_user'
+// LocalStorage Base Keys
+const BASE_KEYS = {
+    USER_SESSION: 'student_dashboard_active_session',
+    SCHEDULE_PREFIX: 'student_dashboard_schedules_',
+    TASKS_PREFIX: 'student_dashboard_tasks_'
 };
 
 // Application State
-let schedules = JSON.parse(localStorage.getItem(STORAGE_KEYS.SCHEDULE)) || [];
-let tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS)) || [];
-let currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.DISCORD_USER)) || null;
+let currentUser = JSON.parse(localStorage.getItem(BASE_KEYS.USER_SESSION)) || null;
+let schedules = [];
+let tasks = [];
 
 let activeDay = 'Senin';
 let taskFilter = 'all';
 
-// Initialize App
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initClock();
     initNavigation();
     initDiscordAuth();
     initScheduleManager();
     initTaskManager();
-    renderAll();
+    
+    // Check Active Session
+    if (currentUser) {
+        showDashboard();
+    } else {
+        showLoginOverlay();
+    }
 });
 
 /* ==========================================
-   1. CLOCK & NAVIGATION LOGIC
+   1. PER-ACCOUNT STORAGE LOGIC (KUNCI UTAMA)
+   ========================================== */
+function getUserScheduleKey() {
+    return currentUser ? `${BASE_KEYS.SCHEDULE_PREFIX}${currentUser.id}` : 'guest_schedules';
+}
+
+function getUserTaskKey() {
+    return currentUser ? `${BASE_KEYS.TASKS_PREFIX}${currentUser.id}` : 'guest_tasks';
+}
+
+function loadUserData() {
+    if (!currentUser) return;
+    schedules = JSON.parse(localStorage.getItem(getUserScheduleKey())) || [];
+    tasks = JSON.parse(localStorage.getItem(getUserTaskKey())) || [];
+    renderAll();
+}
+
+function saveUserData() {
+    if (!currentUser) return;
+    localStorage.setItem(getUserScheduleKey(), JSON.stringify(schedules));
+    localStorage.setItem(getUserTaskKey(), JSON.stringify(tasks));
+    renderAll();
+}
+
+function clearCurrentUserData() {
+    if (!currentUser) return;
+    if (confirm(`Apakah kamu yakin ingin menghapus seluruh jadwal dan tugas untuk akun ${currentUser.username}?`)) {
+        localStorage.removeItem(getUserScheduleKey());
+        localStorage.removeItem(getUserTaskKey());
+        schedules = [];
+        tasks = [];
+        renderAll();
+        alert('Data akun berhasil dibersihkan!');
+    }
+}
+
+/* ==========================================
+   2. AUTHENTICATION & LOGIN OVERLAY
+   ========================================== */
+function initDiscordAuth() {
+    const loginDiscordBtn = document.getElementById('loginDiscordBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Parse OAuth2 Token from URL Hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.has('access_token')) {
+        const accessToken = hashParams.get('access_token');
+        fetchDiscordUserProfile(accessToken);
+        window.location.hash = ''; // Clear Hash
+    }
+
+    loginDiscordBtn.addEventListener('click', () => {
+        const authUrl = `${DISCORD_CONFIG.AUTH_ENDPOINT}?client_id=${DISCORD_CONFIG.CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_CONFIG.REDIRECT_URI)}&response_type=token&scope=${DISCORD_CONFIG.SCOPES.join('%20')}`;
+        window.location.href = authUrl;
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        if (confirm('Apakah kamu yakin ingin keluar dari akun ini?')) {
+            currentUser = null;
+            localStorage.removeItem(BASE_KEYS.USER_SESSION);
+            showLoginOverlay();
+        }
+    });
+}
+
+function fetchDiscordUserProfile(token) {
+    fetch('https://discord.com/api/users/@me', {
+        headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.id) {
+            currentUser = {
+                id: data.id,
+                username: data.global_name || data.username,
+                tag: `#${data.discriminator !== '0' ? data.discriminator : '0000'}`,
+                avatar: data.avatar 
+                    ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` 
+                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
+            };
+            localStorage.setItem(BASE_KEYS.USER_SESSION, JSON.stringify(currentUser));
+            showDashboard();
+        }
+    })
+    .catch(err => {
+        console.error('Error fetching Discord user profile:', err);
+        alert('Gagal mengambil profil Discord. Periksa koneksi internet atau konfigurasi OAuth2.');
+    });
+}
+
+// SIMULASI OFFLINE TESTING (Multi-Account Demo)
+function loginDemo(accountType) {
+    if (accountType === 'user_a') {
+        currentUser = {
+            id: 'demo_user_111',
+            username: 'Budi (Mahasiswa A)',
+            tag: '#1234',
+            avatar: 'https://cdn.discordapp.com/embed/avatars/1.png'
+        };
+    } else {
+        currentUser = {
+            id: 'demo_user_222',
+            username: 'Siti (Mahasiswa B)',
+            tag: '#5678',
+            avatar: 'https://cdn.discordapp.com/embed/avatars/2.png'
+        };
+    }
+    localStorage.setItem(BASE_KEYS.USER_SESSION, JSON.stringify(currentUser));
+    showDashboard();
+}
+
+function showLoginOverlay() {
+    document.getElementById('loginOverlay').classList.add('active');
+}
+
+function showDashboard() {
+    document.getElementById('loginOverlay').classList.remove('active');
+    
+    // Update Profile UI
+    document.getElementById('userAvatar').src = currentUser.avatar;
+    document.getElementById('userName').textContent = currentUser.username;
+    document.getElementById('userTag').textContent = currentUser.tag;
+    document.getElementById('pillAccountName').textContent = currentUser.username;
+
+    // Update Settings UI
+    document.getElementById('settingAccountName').textContent = currentUser.username;
+    document.getElementById('settingAccountId').textContent = currentUser.id;
+    document.getElementById('settingStorageKey').textContent = getUserScheduleKey();
+
+    // Load Data
+    loadUserData();
+}
+
+/* ==========================================
+   3. CLOCK & NAVIGATION
    ========================================== */
 function initClock() {
     const clockEl = document.getElementById('liveClock');
@@ -40,8 +180,7 @@ function initClock() {
 }
 
 function initNavigation() {
-    const navBtns = document.querySelectorAll('.nav-btn');
-    navBtns.forEach(btn => {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const targetTab = btn.getAttribute('data-tab');
             switchTab(targetTab);
@@ -63,98 +202,13 @@ function switchTab(tabId) {
         dashboard: 'Dashboard Ringkasan',
         schedule: 'Jadwal Kuliah',
         tasks: 'Manajemen Tugas',
-        settings: 'Pengaturan OAuth2 Discord'
+        settings: 'Pengaturan Akun & Memori'
     };
     document.getElementById('pageTitle').textContent = titles[tabId] || 'Dashboard';
 }
 
 /* ==========================================
-   2. DISCORD OAUTH2 AUTHORIZATION
-   ========================================== */
-function initDiscordAuth() {
-    const topAuthBtn = document.getElementById('topAuthBtn');
-    const authBtn = document.getElementById('authBtn');
-    
-    // Check URL Hash for OAuth Access Token
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.has('access_token')) {
-        const accessToken = hashParams.get('access_token');
-        fetchDiscordUserProfile(accessToken);
-        window.location.hash = ''; // Clear URL hash
-    }
-
-    const triggerLogin = () => {
-        if (currentUser) {
-            // Logout confirmation
-            if (confirm('Apakah kamu yakin ingin logout dari Discord?')) {
-                currentUser = null;
-                localStorage.removeItem(STORAGE_KEYS.DISCORD_USER);
-                renderUserCard();
-            }
-        } else {
-            // Redirect to Discord OAuth URL
-            const authUrl = `${DISCORD_CONFIG.AUTH_ENDPOINT}?client_id=${DISCORD_CONFIG.CLIENT_ID}&redirect_uri=${encodeURIComponent(DISCORD_CONFIG.REDIRECT_URI)}&response_type=token&scope=${DISCORD_CONFIG.SCOPES.join('%20')}`;
-            window.location.href = authUrl;
-        }
-    };
-
-    topAuthBtn.addEventListener('click', triggerLogin);
-    authBtn.addEventListener('click', triggerLogin);
-
-    renderUserCard();
-}
-
-function fetchDiscordUserProfile(token) {
-    fetch('https://discord.com/api/users/@me', {
-        headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.id) {
-            currentUser = {
-                id: data.id,
-                username: data.global_name || data.username,
-                tag: `#${data.discriminator !== '0' ? data.discriminator : '0000'}`,
-                avatar: data.avatar 
-                    ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` 
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
-            };
-            localStorage.setItem(STORAGE_KEYS.DISCORD_USER, JSON.stringify(currentUser));
-            renderUserCard();
-        }
-    })
-    .catch(err => console.error('Gagal mengambil data akun Discord:', err));
-}
-
-function renderUserCard() {
-    const avatarImg = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
-    const userTag = document.getElementById('userTag');
-    const topAuthBtn = document.getElementById('topAuthBtn');
-    const settingsStatus = document.getElementById('settingsLoginStatus');
-    const settingsRedirect = document.getElementById('settingsRedirectUri');
-
-    if (settingsRedirect) settingsRedirect.textContent = DISCORD_CONFIG.REDIRECT_URI;
-
-    if (currentUser) {
-        avatarImg.src = currentUser.avatar;
-        userName.textContent = currentUser.username;
-        userTag.textContent = currentUser.tag;
-        topAuthBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
-        topAuthBtn.classList.replace('btn-discord', 'btn-secondary');
-        if (settingsStatus) settingsStatus.textContent = `Terkoneksi sebagai ${currentUser.username}`;
-    } else {
-        avatarImg.src = 'https://cdn.discordapp.com/embed/avatars/0.png';
-        userName.textContent = 'Guest User';
-        userTag.textContent = 'Belum Login';
-        topAuthBtn.innerHTML = `<i class="fa-brands fa-discord"></i> Login Discord`;
-        topAuthBtn.classList.replace('btn-secondary', 'btn-discord');
-        if (settingsStatus) settingsStatus.textContent = 'Belum Terkoneksi (Mode Tamu)';
-    }
-}
-
-/* ==========================================
-   3. JADWAL KULIAH LOGIC
+   4. JADWAL KULIAH LOGIC
    ========================================== */
 function initScheduleManager() {
     const modal = document.getElementById('scheduleModal');
@@ -179,12 +233,11 @@ function initScheduleManager() {
         };
 
         schedules.push(newSchedule);
-        saveAndRender();
+        saveUserData();
         form.reset();
         modal.classList.remove('active');
     });
 
-    // Day picker tabs
     document.querySelectorAll('.day-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
@@ -223,11 +276,11 @@ function renderSchedule() {
 
 function deleteSchedule(id) {
     schedules = schedules.filter(s => s.id !== id);
-    saveAndRender();
+    saveUserData();
 }
 
 /* ==========================================
-   4. MANAJEMEN TUGAS LOGIC
+   5. MANAJEMEN TUGAS LOGIC
    ========================================== */
 function initTaskManager() {
     const modal = document.getElementById('taskModal');
@@ -252,12 +305,11 @@ function initTaskManager() {
         };
 
         tasks.push(newTask);
-        saveAndRender();
+        saveUserData();
         form.reset();
         modal.classList.remove('active');
     });
 
-    // Task Filter Buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -279,7 +331,7 @@ function renderTasks() {
         listEl.innerHTML = `
             <div class="empty-state">
                 <i class="fa-solid fa-clipboard-check"></i>
-                <p>Tidak ada tugas dalam kategori ini.</p>
+                <p>Tidak ada tugas dalam daftar ini.</p>
             </div>`;
         return;
     }
@@ -308,23 +360,17 @@ function renderTasks() {
 
 function toggleTask(id) {
     tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-    saveAndRender();
+    saveUserData();
 }
 
 function deleteTask(id) {
     tasks = tasks.filter(t => t.id !== id);
-    saveAndRender();
+    saveUserData();
 }
 
 /* ==========================================
-   5. DASHBOARD STATS & RENDER HELPERS
+   6. RENDER DASHBOARD & STATS
    ========================================== */
-function saveAndRender() {
-    localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(schedules));
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-    renderAll();
-}
-
 function renderAll() {
     renderSchedule();
     renderTasks();
@@ -367,7 +413,7 @@ function renderDashboardStats() {
     const highPriorityTasks = tasks.filter(t => !t.completed && t.priority === 'high');
 
     if (highPriorityTasks.length === 0) {
-        priorityListEl.innerHTML = `<li style="color:var(--text-muted); font-size: 13px; list-style: none;">Tidak ada tugas prioritas tinggi. Good job!</li>`;
+        priorityListEl.innerHTML = `<li style="color:var(--text-muted); font-size: 13px; list-style: none;">Tidak ada tugas prioritas tinggi. Kerjaan aman!</li>`;
     } else {
         priorityListEl.innerHTML = highPriorityTasks.slice(0, 3).map(t => `
             <li style="margin-bottom: 10px; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-tertiary); padding: 8px 12px; border-radius: 6px;">
