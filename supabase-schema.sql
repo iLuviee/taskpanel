@@ -9,6 +9,7 @@ create table if not exists public.tasks (
     priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
     deadline timestamptz not null,
     notes text not null default '',
+    attachment jsonb not null default '{}'::jsonb,
     completed boolean not null default false,
     created_at timestamptz not null default now()
 );
@@ -38,3 +39,24 @@ create policy "Users manage their own schedules" on public.schedules
 
 create index if not exists tasks_user_id_idx on public.tasks(user_id);
 create index if not exists schedules_user_id_idx on public.schedules(user_id);
+
+alter table public.tasks add column if not exists attachment jsonb not null default '{}'::jsonb;
+
+insert into storage.buckets (id, name, public)
+values ('task-files', 'task-files', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Users upload their own task files" on storage.objects;
+create policy "Users upload their own task files" on storage.objects
+    for insert to authenticated
+    with check (bucket_id = 'task-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Users read their own task files" on storage.objects;
+create policy "Users read their own task files" on storage.objects
+    for select to authenticated
+    using (bucket_id = 'task-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Users delete their own task files" on storage.objects;
+create policy "Users delete their own task files" on storage.objects
+    for delete to authenticated
+    using (bucket_id = 'task-files' and (storage.foldername(name))[1] = auth.uid()::text);
