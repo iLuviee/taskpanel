@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Discord Theme</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ginto+Nord:wght@700&family=gg+sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS File -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-brands fa-discord brand-icon"></i>
+                <span class="brand-title">Academia</span>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-btn" data-tab="schedule">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Jadwal Kuliah</span>
+                </button>
+                <button class="nav-btn" data-tab="tasks">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Manajemen Tugas</span>
+                </button>
+                <button class="nav-btn" data-tab="settings">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Pengaturan</span>
+                </button>
+            </nav>
+
+            <div class="user-card" id="sidebarUserCard">
+                <div class="user-avatar-container">
+                    <img id="userAvatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User Avatar" class="user-avatar">
+                    <span class="status-indicator online"></span>
+                </div>
+                <div class="user-details">
+                    <span id="userName" class="user-name">Guest User</span>
+                    <span id="userTag" class="user-tag">Belum Login</span>
+                </div>
+                <button id="authBtn" class="auth-btn" title="Login / Logout">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="pageTitle">Dashboard Ringkasan</h1>
+                    <p id="currentDate" class="sub-title">Senin, 28 September 2026</p>
+                </div>
+
+                <div class="header-actions">
+                    <div class="time-badge" id="liveClock">00:00:00 WIB</div>
+                    <button class="btn btn-discord" id="topAuthBtn">
+                        <i class="fa-brands fa-discord"></i> Login Discord
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card blurple">
+                        <div class="stat-icon"><i class="fa-solid fa-book-open"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Kelas Hari Ini</span>
+                            <h3 id="statTodayClasses">0 Matakuliah</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card yellow">
+                        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Tugas Pending</span>
+                            <h3 id="statPendingTasks">0 Tugas</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Selesai Minggu Ini</span>
+                            <h3 id="statCompletedTasks">0 Tugas</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Left: Upcoming Class Banner -->
+                    <div class="content-card focus-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-graduation-cap"></i> Jadwal Kuliah Selanjutnya</h2>
+                        </div>
+                        <div class="card-body" id="nextClassContainer">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-mug-hot"></i>
+                                <p>Tidak ada perkuliahan lagi untuk hari ini!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Quick Tasks -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-fire"></i> Tugas Prioritas Tinggi</h2>
+                            <button class="btn-text" onclick="switchTab('tasks')">Lihat Semua</button>
+                        </div>
+                        <div class="card-body">
+                            <ul class="task-list-simple" id="priorityTaskList">
+                                <!-- Dynamic dynamic JS insert -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: JADWAL KULIAH -->
+            <section id="tab-schedule" class="tab-content">
+                <div class="section-actions">
+                    <div class="day-picker" id="dayPicker">
+                        <button class="day-btn active" data-day="Senin">Sen</button>
+                        <button class="day-btn" data-day="Selasa">Sel</button>
+                        <button class="day-btn" data-day="Rabu">Rab</button>
+                        <button class="day-btn" data-day="Kamis">Kam</button>
+                        <button class="day-btn" data-day="Jumat">Jum</button>
+                        <button class="day-btn" data-day="Sabtu">Sab</button>
+                    </div>
+                    <button class="btn btn-primary" id="openScheduleModalBtn">
+                        <i class="fa-solid fa-plus"></i> Tambah Jadwal
+                    </button>
+                </div>
+
+                <div class="schedule-grid" id="scheduleList">
+                    <!-- Cards dynamic -->
+                </div>
+            </section>
+
+            <!-- TAB 3: MANAJEMEN TUGAS -->
+            <section id="tab-tasks" class="tab-content">
+                <div class="section-actions">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">Semua</button>
+                        <button class="filter-btn" data-filter="pending">Belum Selesai</button>
+                        <button class="filter-btn" data-filter="done">Selesai</button>
+                    </div>
+                    <button class="btn btn-primary" id="openTaskModalBtn">
+                        <i class="fa-solid fa-plus"></i> Buat Tugas Baru
+                    </button>
+                </div>
+
+                <div class="tasks-container" id="taskList">
+                    <!-- Task items dynamic -->
+                </div>
+            </section>
+
+            <!-- TAB 4: PENGATURAN & DISCORD -->
+            <section id="tab-settings" class="tab-content">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fa-brands fa-discord"></i> Status Konfigurasi OAuth2 Discord</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box">
+                            <p><strong>Status Login:</strong> <span id="settingsLoginStatus">Belum Terkoneksi</span></p>
+                            <p><strong>Redirect URI Aktif:</strong> <code id="settingsRedirectUri">...</code></p>
+                        </div>
+                        <div class="guide-steps">
+                            <h3>Langkah Deployment GitHub Pages:</h3>
+                            <ol>
+                                <li>Buka <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.</li>
+                                <li>Pilih / buat aplikasi baru, buka menu <strong>OAuth2</strong>.</li>
+                                <li>Tambahkan Redirect URI yang tertera di atas pada pengaturan Discord App kamu.</li>
+                                <li>Salin <strong>Client ID</strong> dan tempelkan ke file <code>config.js</code> di repositori GitHub kamu.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: TAMBAH JADWAL KULIAH -->
+    <div class="modal-overlay" id="scheduleModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Tambah Jadwal Kuliah</h3>
+                <button class="close-btn" id="closeScheduleModal">&times;</button>
+            </div>
+            <form id="scheduleForm">
+                <div class="form-group">
+                    <label>Mata Kuliah</label>
+                    <input type="text" id="schedSubject" placeholder="Contoh: Pemrograman Web" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Hari</label>
+                        <select id="schedDay">
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                            <option value="Sabtu">Sabtu</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ruangan / Link</label>
+                        <input type="text" id="schedRoom" placeholder="Ruang Lab 302" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Jam Mulai</label>
+                        <input type="time" id="schedStartTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Jam Selesai</label>
+                        <input type="time" id="schedEndTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Dosen Pengampu</label>
+                    <input type="text" id="schedLecturer" placeholder="Drs. Budi Santoso, M.Kom">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelScheduleModal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Jadwal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH TUGAS -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Tambah Tugas Baru</h3>
+                <button class="close-btn" id="closeTaskModal">&times;</button>
+            </div>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label>Judul Tugas</label>
+                    <input type="text" id="taskTitle" placeholder="Contoh: Laporan Pratikum Modul 2" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mata Kuliah</label>
+                        <input type="text" id="taskCourse" placeholder="Jaringan Komputer" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prioritas</label>
+                        <select id="taskPriority">
+                            <option value="low">Rendah</option>
+                            <option value="medium" selected>Sedang</option>
+                            <option value="high">Tinggi (Penting)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tenggat Waktu (Deadline)</label>
+                    <input type="datetime-local" id="taskDeadline" required>
+                </div>
+                <div class="form-group">
+                    <label>Catatan Tambahan</label>
+                    <textarea id="taskNotes" rows="3" placeholder="Instruksi pengerjaan atau tautan referensi..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelTaskModal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Tugas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Files -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
